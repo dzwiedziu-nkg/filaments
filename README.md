@@ -26,7 +26,8 @@ Każdy filament to **bloczek** z **grubą ramką w kolorze filamentu** — dzię
 Bloczek **podświetla się na czerwono** (znacznik „niski stan"), gdy stan spadnie do
 **300 g lub mniej** (próg ustawisz w `app.py` → `LOW_STOCK_THRESHOLD`).
 
-Nad siatką jest licznik szpul i **sortowanie wg daty zakupu** (rosnąco / malejąco).
+Nad siatką jest licznik szpul, **filtr rodzaju** (Wszystkie / PLA / PETG / Inne —
+z liczbą szpul w każdej kategorii) oraz **sortowanie wg daty zakupu** (rosnąco / malejąco).
 Na telefonie bloczki układają się w 2 kolumny; na komputerze jest ich więcej w rzędzie.
 
 ## Wymagania
@@ -95,7 +96,7 @@ Kopia zapasowa = skopiowanie tego pliku. Usunięcie pliku = czysty start.
 
 ```
 app.py                    # backend Flask + API + baza SQLite
-templates/index.html      # interfejs (tabela, edycja, sortowanie)
+templates/index.html      # interfejs (bloczki, edycja, filtr, sortowanie)
 requirements.txt          # zależności
 deploy/filamenty.service  # usługa systemd (autostart)
 filaments.db              # baza danych (tworzona automatycznie)
