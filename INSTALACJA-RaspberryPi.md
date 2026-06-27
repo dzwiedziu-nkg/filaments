@@ -148,12 +148,14 @@ Od teraz aplikacja działa zawsze — wejdź na `http://ADRES-IP-RASPBERRY:5000`
 
 ## Aktualizacja aplikacji
 
-Po wgraniu nowej wersji plików (np. `git pull` albo ponowne `scp`):
+Pełna, bezpieczna instrukcja aktualizacji (z kopią zapasową danych) jest w osobnym
+pliku: **`AKTUALIZACJA-RaspberryPi.md`**. W skrócie:
 
 ```bash
-cd ~/tunia
-.venv/bin/pip install -r requirements.txt   # gdyby doszły nowe zależności
-sudo systemctl restart filamenty.service
+cp ~/tunia/filaments.db ~/filaments-kopia-$(date +%F).db   # kopia danych
+cd ~/tunia && git pull                                     # nowy kod
+.venv/bin/pip install -r requirements.txt                  # zależności
+sudo systemctl restart filamenty.service                   # restart
 ```
 
 ---
