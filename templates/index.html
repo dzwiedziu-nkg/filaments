@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Posiadane filamenty</title>
+<style>
+  :root {
+    --bg: #f3f4f6;
+    --card: #ffffff;
+    --ink: #1f2933;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --danger: #dc2626;
+    --low-bg: #fff5f5;
+  }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: clip; max-width: 100%; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.4;
+  }
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 18px 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
+  header p { margin: 4px 0 0; opacity: .85; font-size: .85rem; }
+  main { max-width: 1180px; margin: 0 auto; padding: 18px; }
+
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+
+  label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+  input, select, button { font: inherit; }
+  input, select {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+  }
+  input[type=color] { padding: 2px; height: 38px; cursor: pointer; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+
+  button {
+    cursor: pointer; border: none; border-radius: 8px;
+    padding: 9px 14px; font-weight: 600;
+    background: #eef2ff; color: var(--accent-dark);
+    transition: background .15s; white-space: nowrap;
+  }
+  button:hover { background: #e0e7ff; }
+  button.primary { background: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-dark); }
+  button.danger { background: #fee2e2; color: var(--danger); }
+  button.danger:hover { background: #fecaca; }
+  button:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+
+  /* Formularz dodawania */
+  .add-form {
+    display: grid;
+    grid-template-columns: 120px minmax(0,1fr) 120px 160px auto;
+    gap: 10px; align-items: end;
+  }
+  .color-pick { display: flex; gap: 8px; }
+  .color-pick input[type=text] { flex: 1; }
+  .color-pick input[type=color] { width: 46px; flex: none; }
+
+  /* Pasek narzędzi */
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar .count { color: var(--muted); font-size: .9rem; }
+  .toolbar .count b { color: var(--ink); }
+  .toolbar .count .lowc { color: var(--danger); }
+  .toolbar .sort { display: flex; align-items: center; gap: 8px; }
+  .toolbar .sort label { margin: 0; }
+  .toolbar .sort select { width: auto; }
+
+  /* Siatka bloczków */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+  .block {
+    background: var(--card);
+    border: 6px solid #ccc;          /* kolor ustawiany inline = kolor filamentu */
+    border-radius: 14px;
+    padding: 12px 13px 13px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12);
+    transition: transform .1s, box-shadow .1s;
+    position: relative;
+    outline: 1px solid rgba(0,0,0,.06);   /* widoczna krawędź nawet dla białych ramek */
+    outline-offset: -7px;
+  }
+  .block:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.16); }
+  .block:active { transform: translateY(0); }
+  .block.low { background: var(--low-bg); }
+
+  .b-top { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .b-dot { width: 16px; height: 16px; border-radius: 50%; flex: none; border: 1px solid rgba(0,0,0,.15); }
+  .b-type { font-weight: 700; font-size: 1.05rem; }
+  .b-badge { margin-left: auto; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; background: var(--danger); color: #fff; padding: 2px 7px; border-radius: 999px; }
+  .b-color { color: var(--muted); font-size: .9rem; margin-bottom: 10px; min-height: 1.2em; word-break: break-word; }
+  .b-weight { font-size: .95rem; }
+  .b-weight b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+  .b-weight.low b { color: var(--danger); }
+  .b-weight .unit { color: var(--muted); }
+  .bar { height: 8px; background: #eceef1; border-radius: 999px; overflow: hidden; margin: 8px 0 10px; }
+  .bar-fill { height: 100%; border-radius: 999px; transition: width .2s; }
+  .b-date { color: var(--muted); font-size: .82rem; }
+
+  .empty { color: var(--muted); text-align: center; padding: 40px 12px; }
+
+  /* Okno (modal) */
+  dialog#modal {
+    border: none; border-radius: 16px; padding: 0;
+    width: calc(100% - 28px); max-width: 440px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.3);
+    overflow: hidden;
+  }
+  dialog#modal::backdrop { background: rgba(0,0,0,.45); }
+  .m-head { padding: 16px 18px; display: flex; align-items: flex-start; gap: 10px; }
+  .m-title { font-size: 1.25rem; font-weight: 700; line-height: 1.2; }
+  .m-sub { font-size: .8rem; opacity: .85; margin-top: 2px; }
+  .m-close { margin-left: auto; background: rgba(255,255,255,.25); color: inherit; width: 34px; height: 34px; border-radius: 50%; padding: 0; font-size: 1.3rem; line-height: 1; }
+  .m-close:hover { background: rgba(255,255,255,.4); }
+  .m-body { padding: 16px 18px 18px; }
+  .m-weight { font-size: 1rem; }
+  .m-weight #m-now { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .m-weight.low #m-now { color: var(--danger); }
+  .m-weight .unit { color: var(--muted); }
+  .m-section { margin-top: 18px; }
+  .m-section h3 { margin: 0 0 8px; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .use-row { display: flex; gap: 8px; }
+  .use-row input { flex: 1; }
+  #m-undo { width: 100%; margin-top: 8px; }
+  .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .m-grid .full { grid-column: 1 / -1; }
+  .modal-foot { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }
+
+  @media (max-width: 720px) {
+    .add-form { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+    .add-form .full2 { grid-column: 1 / -1; }
+    .add-form .actions { grid-column: 1 / -1; }
+    .add-form .actions button { width: 100%; }
+    main { padding: 12px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Posiadane filamenty</h1>
+  <p>Magazyn filamentów do druku 3D · gruba ramka = kolor filamentu · kliknij bloczek, aby wpisać zużycie · podświetlenie przy stanie ≤ {{ threshold }} g</p>
+</header>
+
+<main>
+  <!-- Dodawanie -->
+  <section class="card">
+    <h2>Dodaj filament</h2>
+    <form class="add-form" id="add-form">
+      <div>
+        <label for="add-type">Rodzaj</label>
+        <select id="add-type"><option>PLA</option><option>PETG</option><option>Inne</option></select>
+      </div>
+      <div class="full2">
+        <label for="add-color">Kolor</label>
+        <div class="color-pick">
+          <input id="add-color" type="text" placeholder="np. czerwony">
+          <input id="add-hex" type="color" value="#e11d2a" title="Kolor ramki">
+        </div>
+      </div>
+      <div>
+        <label for="add-initial">g po zakupie</label>
+        <input id="add-initial" type="number" min="0" step="any" placeholder="1000">
+      </div>
+      <div>
+        <label for="add-date">Data zakupu</label>
+        <input id="add-date" type="date">
+      </div>
+      <div class="actions" style="align-self:end">
+        <button type="submit" class="primary">+ Dodaj</button>
+      </div>
+    </form>
+  </section>
+
+  <div class="toolbar">
+    <span class="count" id="count"></span>
+    <div class="sort">
+      <label for="sort">Sortuj wg daty:</label>
+      <select id="sort">
+        <option value="asc">od najstarszych</option>
+        <option value="desc">od najnowszych</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- Okno szczegółów / zużycia -->
+<dialog id="modal">
+  <div class="m-head" id="m-head">
+    <div>
+      <div class="m-title" id="m-title"></div>
+      <div class="m-sub" id="m-sub"></div>
+    </div>
+    <button class="m-close" id="m-close" title="Zamknij" type="button">×</button>
+  </div>
+  <div class="m-body">
+    <div class="m-weight" id="m-weightwrap">
+      Pozostało: <span id="m-now"></span> <span class="unit">/ <span id="m-init"></span> g</span>
+    </div>
+    <div class="bar"><div class="bar-fill" id="m-bar"></div></div>
+
+    <section class="m-section">
+      <h3>Zużycie</h3>
+      <div class="use-row">
+        <input type="number" id="m-amount" min="0" step="any" placeholder="ile zużyto (g)" inputmode="decimal">
+        <button id="m-use" class="primary" type="button">Zużyj</button>
+      </div>
+      <button id="m-undo" class="ghost" type="button">↶ Cofnij ostatnie odjęcie</button>
+    </section>
+
+    <section class="m-section">
+      <h3>Szczegóły</h3>
+      <div class="m-grid">
+        <div>
+          <label for="m-type">Rodzaj</label>
+          <select id="m-type"></select>
+        </div>
+        <div>
+          <label for="m-winit">Gramatura po zakupie (g)</label>
+          <input id="m-winit" type="number" min="0" step="any">
+        </div>
+        <div class="full">
+          <label for="m-color">Kolor</label>
+          <div class="color-pick">
+            <input id="m-color" type="text" placeholder="nazwa koloru">
+            <input id="m-hex" type="color" title="Kolor ramki">
+          </div>
+        </div>
+        <div class="full">
+          <label for="m-date">Data zakupu</label>
+          <input id="m-date" type="date">
+        </div>
+      </div>
+    </section>
+
+    <div class="modal-foot">
+      <button id="m-delete" class="danger" type="button">Usuń</button>
+      <button id="m-done" class="primary" type="button">Gotowe</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const THRESHOLD = {{ threshold }};
+const state = { filaments: [], sortDir: 'asc', currentId: null };
+
+const PL_COLORS = {
+  'czerwony':'#e11d2a','czerwień':'#e11d2a','bordowy':'#7f1d1d',
+  'zielony':'#16a34a','zieleń':'#16a34a','ciemnozielony':'#14532d',
+  'niebieski':'#2563eb','błękitny':'#38bdf8','blekitny':'#38bdf8','granatowy':'#1e3a8a',
+  'żółty':'#facc15','zolty':'#facc15','pomarańczowy':'#f97316','pomaranczowy':'#f97316',
+  'fioletowy':'#7c3aed','różowy':'#ec4899','rozowy':'#ec4899','magenta':'#d6249f',
+  'czarny':'#111827','biały':'#f5f5f4','bialy':'#f5f5f4','szary':'#9ca3af',
+  'srebrny':'#cbd5e1','złoty':'#d4af37','zloty':'#d4af37','miedziany':'#b45309',
+  'brązowy':'#92400e','brazowy':'#92400e','beżowy':'#e7d3b3','bezowy':'#e7d3b3',
+  'turkusowy':'#14b8a6','limonkowy':'#84cc16','przezroczysty':'#e5e7eb','naturalny':'#efe9dd'
+};
+
+// ---- pomocnicze ----
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtNum = v => (Math.round((Number(v)||0)*100)/100).toLocaleString('pl-PL');
+function isoToDisplay(iso){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||''); return m?`${m[3]}/${m[2]}/${m[1]}`:''; }
+function today(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function pct(f){ const i=Number(f.weight_initial)||0, c=Number(f.weight_current)||0; if(i<=0) return 0; return Math.max(0, Math.min(100, c/i*100)); }
+function contrast(hex){
+  const m=/^#?([0-9a-f]{6})$/i.exec(hex||''); if(!m) return '#fff';
+  const n=parseInt(m[1],16), r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  return (0.2126*r+0.7152*g+0.0722*b) > 150 ? '#1f2933' : '#ffffff';
+}
+
+async function api(url, opts){
+  const res = await fetch(url, opts);
+  if(!res.ok){ let m=res.statusText; try{ m=(await res.json()).error||m; }catch(e){} alert('Błąd: '+m); throw new Error(m); }
+  return res.status===204 ? null : res.json();
+}
+
+async function load(){ state.filaments = await api('/api/filaments'); renderGrid(); }
+
+function sorted(){
+  const a=[...state.filaments];
+  a.sort((x,y)=>{ const xv=x.purchase_date||'', yv=y.purchase_date||'';
+    if(!xv&&!yv) return x.id-y.id; if(!xv) return 1; if(!yv) return -1;
+    if(xv===yv) return x.id-y.id;
+    return state.sortDir==='asc' ? xv.localeCompare(yv) : yv.localeCompare(xv); });
+  return a;
+}
+
+// ---- siatka bloczków ----
+function typeOptions(value){
+  const base=['PLA','PETG','Inne']; if(value && !base.includes(value)) base.splice(2,0,value);
+  return base.map(t=>`<option ${t===value?'selected':''}>${esc(t)}</option>`).join('');
+}
+
+function blockHtml(f){
+  const low=(Number(f.weight_current)||0)<=THRESHOLD;
+  const hex=esc(f.color_hex||'#cccccc');
+  return `<div class="block ${low?'low':''}" data-id="${f.id}" style="border-color:${hex}">
+    <div class="b-top">
+      <span class="b-dot" style="background:${hex}"></span>
+      <span class="b-type">${esc(f.type)}</span>
+      ${low?'<span class="b-badge">niski stan</span>':''}
+    </div>
+    <div class="b-color">${esc(f.color)||'&nbsp;'}</div>
+    <div class="b-weight ${low?'low':''}"><b>${fmtNum(f.weight_current)}</b> <span class="unit">/ ${fmtNum(f.weight_initial)} g</span></div>
+    <div class="bar"><div class="bar-fill" style="width:${pct(f)}%;background:${hex}"></div></div>
+    <div class="b-date">📅 ${isoToDisplay(f.purchase_date)||'—'}</div>
+  </div>`;
+}
+
+function renderGrid(){
+  const grid=document.getElementById('grid');
+  const rows=sorted();
+  grid.innerHTML = rows.length ? rows.map(blockHtml).join('')
+    : '<div class="empty">Brak filamentów — dodaj pierwszy w formularzu powyżej.</div>';
+  const n=state.filaments.length;
+  const total=state.filaments.reduce((s,f)=>s+(Number(f.weight_current)||0),0);
+  const lowc=state.filaments.filter(f=>(Number(f.weight_current)||0)<=THRESHOLD).length;
+  document.getElementById('count').innerHTML = n
+    ? `<b>${n}</b> ${n===1?'szpula':'szpul'} · pozostało <b>${fmtNum(total)} g</b>` + (lowc?` · <span class="lowc"><b>${lowc}</b> z niskim stanem</span>`:'')
+    : '';
+}
+
+function find(id){ return state.filaments.find(f=>f.id===id); }
+
+// ---- okno (modal) ----
+const modal=document.getElementById('modal');
+
+function openModal(id){
+  const f=find(id); if(!f) return;
+  state.currentId=id;
+  document.getElementById('m-type').innerHTML=typeOptions(f.type);
+  document.getElementById('m-color').value=f.color||'';
+  document.getElementById('m-hex').value=/^#[0-9a-f]{6}$/i.test(f.color_hex)?f.color_hex:'#cccccc';
+  document.getElementById('m-winit').value=f.weight_initial;
+  document.getElementById('m-date').value=f.purchase_date||'';
+  document.getElementById('m-amount').value='';
+  mRefresh(f);
+  if(!modal.open) modal.showModal();
+  setTimeout(()=>document.getElementById('m-amount').focus(), 50);
+}
+
+function mRefresh(f){
+  const low=(Number(f.weight_current)||0)<=THRESHOLD;
+  const hex=/^#[0-9a-f]{6}$/i.test(f.color_hex)?f.color_hex:'#cccccc';
+  const head=document.getElementById('m-head');
+  head.style.background=hex; head.style.color=contrast(hex);
+  document.getElementById('m-title').textContent=`${f.type} · ${f.color||'bez nazwy'}`;
+  document.getElementById('m-sub').textContent=`Kupiono ${isoToDisplay(f.purchase_date)||'—'}`;
+  document.getElementById('m-now').textContent=fmtNum(f.weight_current)+' g';
+  document.getElementById('m-init').textContent=fmtNum(f.weight_initial);
+  document.getElementById('m-weightwrap').classList.toggle('low', low);
+  const bar=document.getElementById('m-bar'); bar.style.width=pct(f)+'%'; bar.style.background=hex;
+  document.getElementById('m-undo').disabled=!f.can_undo;
+}
+
+function applyUpdated(f){
+  const local=find(f.id); if(local) Object.assign(local, f);
+  renderGrid();
+  if(state.currentId===f.id && modal.open) mRefresh(local||f);
+}
+
+document.getElementById('grid').addEventListener('click', e=>{
+  const b=e.target.closest('.block'); if(b) openModal(Number(b.dataset.id));
+});
+
+document.getElementById('m-use').addEventListener('click', async ()=>{
+  const inp=document.getElementById('m-amount');
+  const amount=parseFloat(String(inp.value).replace(',','.'));
+  if(!(amount>0)){ alert('Podaj liczbę gramów większą od zera.'); inp.focus(); return; }
+  const u=await api(`/api/filaments/${state.currentId}/use`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount})});
+  inp.value=''; applyUpdated(u); inp.focus();
+});
+document.getElementById('m-amount').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('m-use').click(); }});
+
+document.getElementById('m-undo').addEventListener('click', async ()=>{
+  const u=await api(`/api/filaments/${state.currentId}/undo`,{method:'POST'}); applyUpdated(u);
+});
+
+async function saveField(field, value){
+  const u=await api(`/api/filaments/${state.currentId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({[field]:value})});
+  applyUpdated(u);
+}
+document.getElementById('m-type').addEventListener('change', e=>saveField('type', e.target.value));
+document.getElementById('m-color').addEventListener('change', e=>saveField('color', e.target.value));
+document.getElementById('m-hex').addEventListener('input', e=>saveField('color_hex', e.target.value));
+document.getElementById('m-winit').addEventListener('change', e=>saveField('weight_initial', e.target.value));
+document.getElementById('m-date').addEventListener('change', e=>saveField('purchase_date', e.target.value));
+
+document.getElementById('m-delete').addEventListener('click', async ()=>{
+  const f=find(state.currentId);
+  if(!confirm(`Usunąć filament: ${f.type} ${f.color||''}?`)) return;
+  await api(`/api/filaments/${state.currentId}`,{method:'DELETE'});
+  state.filaments=state.filaments.filter(x=>x.id!==state.currentId);
+  modal.close(); renderGrid();
+});
+
+document.getElementById('m-done').addEventListener('click', ()=>modal.close());
+document.getElementById('m-close').addEventListener('click', ()=>modal.close());
+modal.addEventListener('click', e=>{ if(e.target===modal) modal.close(); }); // klik w tło zamyka
+
+// ---- sortowanie ----
+document.getElementById('sort').addEventListener('change', e=>{ state.sortDir=e.target.value; renderGrid(); });
+
+// ---- dodawanie ----
+let hexTouched=false;
+document.getElementById('add-hex').addEventListener('input', ()=>{ hexTouched=true; });
+document.getElementById('add-color').addEventListener('input', e=>{
+  if(hexTouched) return;
+  const key=e.target.value.trim().toLowerCase();
+  if(PL_COLORS[key]) document.getElementById('add-hex').value=PL_COLORS[key];
+});
+document.getElementById('add-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const created=await api('/api/filaments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    type:document.getElementById('add-type').value,
+    color:document.getElementById('add-color').value,
+    color_hex:document.getElementById('add-hex').value,
+    weight_initial:document.getElementById('add-initial').value||0,
+    purchase_date:document.getElementById('add-date').value
+  })});
+  state.filaments.push(created); renderGrid();
+  document.getElementById('add-color').value='';
+  document.getElementById('add-initial').value='';
+  document.getElementById('add-date').value=today();
+  document.getElementById('add-hex').value='#e11d2a'; hexTouched=false;
+  document.getElementById('add-color').focus();
+});
+
+// ---- start ----
+document.getElementById('add-date').value=today();
+load();
+</script>
+</body>
+</html>
