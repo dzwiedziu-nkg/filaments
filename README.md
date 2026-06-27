@@ -26,8 +26,10 @@ Każdy filament to **bloczek** z **grubą ramką w kolorze filamentu** — dzię
 Bloczek **podświetla się na czerwono** (znacznik „niski stan"), gdy stan spadnie do
 **300 g lub mniej** (próg ustawisz w `app.py` → `LOW_STOCK_THRESHOLD`).
 
-Nad siatką jest licznik szpul, **filtr rodzaju** (Wszystkie / PLA / PETG / Inne —
-z liczbą szpul w każdej kategorii) oraz **sortowanie wg daty zakupu** (rosnąco / malejąco).
+Nad siatką jest licznik szpul, **filtry: rodzaj** (Wszystkie / PLA / PETG / Inne —
+z liczbą szpul w każdej kategorii) i **kolor** (lista kolorów obecnych w magazynie,
+z liczbą szpul i próbką barwy) — oba działają razem — oraz **sortowanie wg daty
+zakupu** (rosnąco / malejąco).
 Na telefonie bloczki układają się w 2 kolumny; na komputerze jest ich więcej w rzędzie.
 
 ## Wymagania

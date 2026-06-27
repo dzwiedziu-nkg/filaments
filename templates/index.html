@@ -100,6 +100,9 @@
   .chip.active:hover { background: var(--accent-dark); }
   .chip-n { font-variant-numeric: tabular-nums; opacity: .65; margin-left: 1px; }
   .chip.active .chip-n { opacity: .9; }
+  .filterbar .cfl { margin-left: 10px; }
+  .cfilter { width: auto; max-width: 60vw; }
+  .cdot { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,.2); flex: none; }
 
   /* Siatka bloczków */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
@@ -193,6 +196,9 @@
     <button type="button" class="chip" data-filter="PLA">PLA <span class="chip-n"></span></button>
     <button type="button" class="chip" data-filter="PETG">PETG <span class="chip-n"></span></button>
     <button type="button" class="chip" data-filter="other">Inne <span class="chip-n"></span></button>
+    <span class="flabel cfl">Kolor:</span>
+    <select id="color-filter" class="cfilter"><option value="all">Wszystkie kolory</option></select>
+    <span class="cdot" id="color-dot" style="display:none"></span>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -296,7 +302,7 @@
 
 <script>
 const THRESHOLD = {{ threshold }};
-const state = { filaments: [], sortDir: 'asc', filter: 'all', currentId: null };
+const state = { filaments: [], sortDir: 'asc', filter: 'all', colorFilter: 'all', currentId: null };
 
 const PL_COLORS = {
   'czerwony':'#e11d2a','czerwień':'#e11d2a','bordowy':'#7f1d1d',
@@ -331,7 +337,7 @@ async function api(url, opts){
 
 async function load(){ state.filaments = await api('/api/filaments'); renderGrid(); }
 
-function matchesFilter(f){
+function matchesType(f){
   switch(state.filter){
     case 'PLA':   return f.type==='PLA';
     case 'PETG':  return f.type==='PETG';
@@ -339,6 +345,10 @@ function matchesFilter(f){
     default:      return true;   // 'all'
   }
 }
+function matchesColor(f){
+  return state.colorFilter==='all' || (f.color||'').trim()===state.colorFilter;
+}
+function matchesFilter(f){ return matchesType(f) && matchesColor(f); }
 
 function sorted(){
   const a=state.filaments.filter(matchesFilter);
@@ -372,12 +382,13 @@ function blockHtml(f){
 }
 
 function renderGrid(){
+  rebuildColorOptions();
   const grid=document.getElementById('grid');
   const rows=sorted();
   if(rows.length){
     grid.innerHTML = rows.map(blockHtml).join('');
   } else if(state.filaments.length){
-    grid.innerHTML = '<div class="empty">Brak filamentów tego rodzaju — zmień filtr powyżej.</div>';
+    grid.innerHTML = '<div class="empty">Brak filamentów pasujących do filtrów — zmień ustawienia powyżej.</div>';
   } else {
     grid.innerHTML = '<div class="empty">Brak filamentów — kliknij „+ Dodaj filament", aby dodać pierwszy.</div>';
   }
@@ -400,6 +411,26 @@ function updateChipCounts(){
     const el=ch.querySelector('.chip-n');
     if(el) el.textContent='('+(c[ch.dataset.filter]||0)+')';
   });
+}
+
+function rebuildColorOptions(){
+  const sel=document.getElementById('color-filter');
+  const map=new Map();                                  // nazwa koloru -> { n, hex }
+  state.filaments.filter(matchesType).forEach(f=>{
+    const name=(f.color||'').trim(); if(!name) return;
+    const e=map.get(name)||{ n:0, hex:f.color_hex||'#cccccc' };
+    e.n++; map.set(name, e);
+  });
+  const names=[...map.keys()].sort((a,b)=>a.localeCompare(b,'pl',{sensitivity:'base'}));
+  let html='<option value="all">Wszystkie kolory</option>';
+  names.forEach(n=>{ html+=`<option value="${esc(n)}">${esc(n)} (${map.get(n).n})</option>`; });
+  sel.innerHTML=html;
+  if(state.colorFilter!=='all' && map.has(state.colorFilter)) sel.value=state.colorFilter;
+  else { state.colorFilter='all'; sel.value='all'; }                 // wybrany kolor zniknął -> wszystkie
+  const dot=document.getElementById('color-dot');
+  if(state.colorFilter!=='all' && map.has(state.colorFilter)){
+    dot.style.display=''; dot.style.background=map.get(state.colorFilter).hex||'#cccccc';
+  } else { dot.style.display='none'; }
 }
 
 function setFilter(val){
@@ -493,6 +524,10 @@ document.getElementById('sort').addEventListener('change', e=>{ state.sortDir=e.
 document.getElementById('filter').addEventListener('click', e=>{
   const chip=e.target.closest('.chip'); if(chip) setFilter(chip.dataset.filter);
 });
+// ---- filtrowanie wg koloru ----
+document.getElementById('color-filter').addEventListener('change', e=>{
+  state.colorFilter=e.target.value; renderGrid();
+});
 
 // ---- dodawanie (osobne okno) ----
 const addModal=document.getElementById('add-modal');
@@ -545,8 +580,9 @@ document.getElementById('add-form').addEventListener('submit', async e=>{
     purchase_date:document.getElementById('add-date').value
   })});
   state.filaments.push(created);
-  // pokaż nowy filament, nawet jeśli aktywny filtr by go ukrył
-  if(matchesFilter(created)) renderGrid();
+  // pokaż nowy filament, nawet jeśli aktywne filtry by go ukryły
+  if(state.colorFilter!=='all' && (created.color||'').trim()!==state.colorFilter) state.colorFilter='all';
+  if(matchesType(created)) renderGrid();
   else setFilter(created.type==='PLA'?'PLA':created.type==='PETG'?'PETG':'other');
   addModal.close();
 });
