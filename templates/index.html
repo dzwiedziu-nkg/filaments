@@ -71,18 +71,15 @@
   button.danger:hover { background: #fecaca; }
   button:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
 
-  /* Formularz dodawania */
-  .add-form {
-    display: grid;
-    grid-template-columns: 120px minmax(0,1fr) 120px 160px auto;
-    gap: 10px; align-items: end;
-  }
+  /* Pola wyboru koloru (nazwa + próbnik) */
   .color-pick { display: flex; gap: 8px; }
   .color-pick input[type=text] { flex: 1; }
   .color-pick input[type=color] { width: 46px; flex: none; }
 
   /* Pasek narzędzi */
-  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar .count { flex: 1; }
+  .add-btn { font-size: 1rem; padding: 10px 18px; }
   .toolbar .count { color: var(--muted); font-size: .9rem; }
   .toolbar .count b { color: var(--ink); }
   .toolbar .count .lowc { color: var(--danger); }
@@ -123,14 +120,14 @@
 
   .empty { color: var(--muted); text-align: center; padding: 40px 12px; }
 
-  /* Okno (modal) */
-  dialog#modal {
+  /* Okna (modale) */
+  dialog.sheet {
     border: none; border-radius: 16px; padding: 0;
     width: calc(100% - 28px); max-width: 440px;
     box-shadow: 0 20px 50px rgba(0,0,0,.3);
     overflow: hidden;
   }
-  dialog#modal::backdrop { background: rgba(0,0,0,.45); }
+  dialog.sheet::backdrop { background: rgba(0,0,0,.45); }
   .m-head { padding: 16px 18px; display: flex; align-items: flex-start; gap: 10px; }
   .m-title { font-size: 1.25rem; font-weight: 700; line-height: 1.2; }
   .m-sub { font-size: .8rem; opacity: .85; margin-top: 2px; }
@@ -151,12 +148,9 @@
   .modal-foot { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }
 
   @media (max-width: 720px) {
-    .add-form { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
-    .add-form .full2 { grid-column: 1 / -1; }
-    .add-form .actions { grid-column: 1 / -1; }
-    .add-form .actions button { width: 100%; }
     main { padding: 12px; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .toolbar .add-btn { flex: 1 1 100%; }
   }
 </style>
 </head>
@@ -167,36 +161,8 @@
 </header>
 
 <main>
-  <!-- Dodawanie -->
-  <section class="card">
-    <h2>Dodaj filament</h2>
-    <form class="add-form" id="add-form">
-      <div>
-        <label for="add-type">Rodzaj</label>
-        <select id="add-type"><option>PLA</option><option>PETG</option><option>Inne</option></select>
-      </div>
-      <div class="full2">
-        <label for="add-color">Kolor</label>
-        <div class="color-pick">
-          <input id="add-color" type="text" placeholder="np. czerwony">
-          <input id="add-hex" type="color" value="#e11d2a" title="Kolor ramki">
-        </div>
-      </div>
-      <div>
-        <label for="add-initial">g po zakupie</label>
-        <input id="add-initial" type="number" min="0" step="any" placeholder="1000">
-      </div>
-      <div>
-        <label for="add-date">Data zakupu</label>
-        <input id="add-date" type="date">
-      </div>
-      <div class="actions" style="align-self:end">
-        <button type="submit" class="primary">+ Dodaj</button>
-      </div>
-    </form>
-  </section>
-
   <div class="toolbar">
+    <button id="open-add" class="primary add-btn" type="button">+ Dodaj filament</button>
     <span class="count" id="count"></span>
     <div class="sort">
       <label for="sort">Sortuj wg daty:</label>
@@ -211,7 +177,7 @@
 </main>
 
 <!-- Okno szczegółów / zużycia -->
-<dialog id="modal">
+<dialog id="modal" class="sheet">
   <div class="m-head" id="m-head">
     <div>
       <div class="m-title" id="m-title"></div>
@@ -263,6 +229,46 @@
       <button id="m-delete" class="danger" type="button">Usuń</button>
       <button id="m-done" class="primary" type="button">Gotowe</button>
     </div>
+  </div>
+</dialog>
+
+<!-- Okno dodawania nowego filamentu -->
+<dialog id="add-modal" class="sheet">
+  <div class="m-head" style="background:var(--accent);color:#fff">
+    <div>
+      <div class="m-title">Nowy filament</div>
+      <div class="m-sub">Uzupełnij dane i kliknij „Dodaj"</div>
+    </div>
+    <button class="m-close" id="add-close" title="Zamknij" type="button">×</button>
+  </div>
+  <div class="m-body">
+    <form id="add-form">
+      <div class="m-grid">
+        <div>
+          <label for="add-type">Rodzaj</label>
+          <select id="add-type"><option>PLA</option><option>PETG</option><option>Inne</option></select>
+        </div>
+        <div>
+          <label for="add-initial">Gramatura po zakupie (g)</label>
+          <input id="add-initial" type="number" min="0" step="any" value="1000">
+        </div>
+        <div class="full">
+          <label for="add-color">Kolor</label>
+          <div class="color-pick">
+            <input id="add-color" type="text" placeholder="np. czerwony" required>
+            <input id="add-hex" type="color" value="#e11d2a" title="Kolor ramki">
+          </div>
+        </div>
+        <div class="full">
+          <label for="add-date">Data zakupu</label>
+          <input id="add-date" type="date">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" id="add-cancel" class="ghost">Anuluj</button>
+        <button type="submit" class="primary">+ Dodaj</button>
+      </div>
+    </form>
   </div>
 </dialog>
 
@@ -338,7 +344,7 @@ function renderGrid(){
   const grid=document.getElementById('grid');
   const rows=sorted();
   grid.innerHTML = rows.length ? rows.map(blockHtml).join('')
-    : '<div class="empty">Brak filamentów — dodaj pierwszy w formularzu powyżej.</div>';
+    : '<div class="empty">Brak filamentów — kliknij „+ Dodaj filament", aby dodać pierwszy.</div>';
   const n=state.filaments.length;
   const total=state.filaments.reduce((s,f)=>s+(Number(f.weight_current)||0),0);
   const lowc=state.filaments.filter(f=>(Number(f.weight_current)||0)<=THRESHOLD).length;
@@ -428,33 +434,65 @@ modal.addEventListener('click', e=>{ if(e.target===modal) modal.close(); }); // 
 // ---- sortowanie ----
 document.getElementById('sort').addEventListener('change', e=>{ state.sortDir=e.target.value; renderGrid(); });
 
-// ---- dodawanie ----
+// ---- dodawanie (osobne okno) ----
+const addModal=document.getElementById('add-modal');
 let hexTouched=false;
+
+const COLOR_REQUIRED_MSG='Podaj kolor filamentu (np. czerwony).';
+
+function resetAddForm(){
+  document.getElementById('add-type').value='PLA';
+  const c=document.getElementById('add-color'); c.value=''; c.setCustomValidity('');
+  document.getElementById('add-hex').value='#e11d2a';
+  document.getElementById('add-initial').value='1000';   // domyślnie 1000 g
+  document.getElementById('add-date').value=today();
+  hexTouched=false;
+}
+
+document.getElementById('open-add').addEventListener('click', ()=>{
+  resetAddForm();
+  addModal.showModal();
+  setTimeout(()=>document.getElementById('add-color').focus(), 50);
+});
+
 document.getElementById('add-hex').addEventListener('input', ()=>{ hexTouched=true; });
 document.getElementById('add-color').addEventListener('input', e=>{
+  e.target.setCustomValidity('');                 // skasuj komunikat, gdy użytkownik pisze
   if(hexTouched) return;
   const key=e.target.value.trim().toLowerCase();
   if(PL_COLORS[key]) document.getElementById('add-hex').value=PL_COLORS[key];
 });
+// komunikat po polsku, niezależnie od języka przeglądarki
+document.getElementById('add-color').addEventListener('invalid', e=>e.target.setCustomValidity(COLOR_REQUIRED_MSG));
+
 document.getElementById('add-form').addEventListener('submit', async e=>{
   e.preventDefault();
+  const colorEl=document.getElementById('add-color');
+  const colorName=colorEl.value.trim();
+  if(!colorName){                                  // blokuj dodanie bez koloru (też same spacje)
+    colorEl.value=colorName;
+    colorEl.setCustomValidity(COLOR_REQUIRED_MSG);
+    colorEl.reportValidity();
+    colorEl.focus();
+    return;
+  }
+  colorEl.setCustomValidity('');
   const created=await api('/api/filaments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     type:document.getElementById('add-type').value,
-    color:document.getElementById('add-color').value,
+    color:colorName,
     color_hex:document.getElementById('add-hex').value,
     weight_initial:document.getElementById('add-initial').value||0,
     purchase_date:document.getElementById('add-date').value
   })});
   state.filaments.push(created); renderGrid();
-  document.getElementById('add-color').value='';
-  document.getElementById('add-initial').value='';
-  document.getElementById('add-date').value=today();
-  document.getElementById('add-hex').value='#e11d2a'; hexTouched=false;
-  document.getElementById('add-color').focus();
+  addModal.close();
 });
 
+document.getElementById('add-cancel').addEventListener('click', ()=>addModal.close());
+document.getElementById('add-close').addEventListener('click', ()=>addModal.close());
+addModal.addEventListener('click', e=>{ if(e.target===addModal) addModal.close(); }); // klik w tło zamyka
+
 // ---- start ----
-document.getElementById('add-date').value=today();
 load();
 </script>
 </body>
