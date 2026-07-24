@@ -28,8 +28,9 @@ Bloczek **podświetla się na czerwono** (znacznik „niski stan"), gdy stan spa
 
 Nad siatką jest licznik szpul, **filtry: rodzaj** (Wszystkie / PLA / PETG / Inne —
 z liczbą szpul w każdej kategorii) i **kolor** (lista kolorów obecnych w magazynie,
-z liczbą szpul i próbką barwy) — oba działają razem — oraz **sortowanie wg daty
-zakupu** (rosnąco / malejąco).
+z liczbą szpul i próbką barwy) — oba działają razem — oraz **sortowanie**:
+wg **daty zakupu** (od najstarszych / od najnowszych) albo wg **nazwy koloru**
+(A→Z / Z→A, dzięki czemu ten sam kolor leży obok siebie).
 Na telefonie bloczki układają się w 2 kolumny; na komputerze jest ich więcej w rzędzie.
 
 ## Wymagania

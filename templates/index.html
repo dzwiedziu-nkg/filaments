@@ -182,10 +182,12 @@
     <button id="open-add" class="primary add-btn" type="button">+ Dodaj filament</button>
     <span class="count" id="count"></span>
     <div class="sort">
-      <label for="sort">Sortuj wg daty:</label>
+      <label for="sort">Sortuj:</label>
       <select id="sort">
-        <option value="asc">od najstarszych</option>
-        <option value="desc">od najnowszych</option>
+        <option value="date-asc">data: od najstarszych</option>
+        <option value="date-desc">data: od najnowszych</option>
+        <option value="color-asc">kolor: A→Z</option>
+        <option value="color-desc">kolor: Z→A</option>
       </select>
     </div>
   </div>
@@ -302,7 +304,7 @@
 
 <script>
 const THRESHOLD = {{ threshold }};
-const state = { filaments: [], sortDir: 'asc', filter: 'all', colorFilter: 'all', currentId: null };
+const state = { filaments: [], sortKey: 'date', sortDir: 'asc', filter: 'all', colorFilter: 'all', currentId: null };
 
 const PL_COLORS = {
   'czerwony':'#e11d2a','czerwień':'#e11d2a','bordowy':'#7f1d1d',
@@ -350,12 +352,33 @@ function matchesColor(f){
 }
 function matchesFilter(f){ return matchesType(f) && matchesColor(f); }
 
+// Puste wartości zawsze na końcu — niezależnie od kierunku sortowania.
+function blankLast(xv, yv){ if(xv&&yv) return null; if(!xv&&!yv) return 0; return xv ? -1 : 1; }
+
+function cmpDate(x, y, dir){
+  const xv=x.purchase_date||'', yv=y.purchase_date||'';
+  const b=blankLast(xv,yv); if(b!==null) return b;
+  return xv.localeCompare(yv)*dir;
+}
+function cmpColor(x, y, dir){
+  const xv=(x.color||'').trim(), yv=(y.color||'').trim();
+  const b=blankLast(xv,yv); if(b!==null) return b;
+  return xv.localeCompare(yv,'pl',{sensitivity:'base'})*dir;
+}
+
 function sorted(){
+  const dir=state.sortDir==='asc' ? 1 : -1;
   const a=state.filaments.filter(matchesFilter);
-  a.sort((x,y)=>{ const xv=x.purchase_date||'', yv=y.purchase_date||'';
-    if(!xv&&!yv) return x.id-y.id; if(!xv) return 1; if(!yv) return -1;
-    if(xv===yv) return x.id-y.id;
-    return state.sortDir==='asc' ? xv.localeCompare(yv) : yv.localeCompare(xv); });
+  a.sort((x,y)=>{
+    let r;
+    if(state.sortKey==='color'){
+      r=cmpColor(x,y,dir); if(r) return r;
+      r=cmpDate(x,y,1);    if(r) return r;   // ten sam kolor -> od najstarszych
+    } else {
+      r=cmpDate(x,y,dir);  if(r) return r;
+    }
+    return x.id-y.id;
+  });
   return a;
 }
 
@@ -517,8 +540,11 @@ document.getElementById('m-done').addEventListener('click', ()=>modal.close());
 document.getElementById('m-close').addEventListener('click', ()=>modal.close());
 modal.addEventListener('click', e=>{ if(e.target===modal) modal.close(); }); // klik w tło zamyka
 
-// ---- sortowanie ----
-document.getElementById('sort').addEventListener('change', e=>{ state.sortDir=e.target.value; renderGrid(); });
+// ---- sortowanie (wg daty zakupu albo nazwy koloru) ----
+document.getElementById('sort').addEventListener('change', e=>{
+  const [key,dir]=e.target.value.split('-');
+  state.sortKey=key; state.sortDir=dir; renderGrid();
+});
 
 // ---- filtrowanie wg rodzaju ----
 document.getElementById('filter').addEventListener('click', e=>{
