@@ -162,7 +162,7 @@
   #m-undo { width: 100%; margin-top: 8px; }
   .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .m-grid .full { grid-column: 1 / -1; }
-  .modal-foot { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }
+  .modal-foot { display: flex; justify-content: space-between; flex-wrap: wrap; margin-top: 20px; gap: 10px; }
 
   @media (max-width: 720px) {
     main { padding: 12px; }
@@ -257,6 +257,7 @@
 
     <div class="modal-foot">
       <button id="m-delete" class="danger" type="button">Usuń</button>
+      <button id="m-duplicate" type="button" title="Dodaj taki sam filament jeszcze raz">Duplikuj</button>
       <button id="m-done" class="primary" type="button">Gotowe</button>
     </div>
   </div>
@@ -266,8 +267,8 @@
 <dialog id="add-modal" class="sheet">
   <div class="m-head" style="background:var(--accent);color:#fff">
     <div>
-      <div class="m-title">Nowy filament</div>
-      <div class="m-sub">Uzupełnij dane i kliknij „Dodaj"</div>
+      <div class="m-title" id="add-title">Nowy filament</div>
+      <div class="m-sub" id="add-sub">Uzupełnij dane i kliknij „Dodaj"</div>
     </div>
     <button class="m-close" id="add-close" title="Zamknij" type="button">×</button>
   </div>
@@ -289,14 +290,18 @@
             <input id="add-hex" type="color" value="#e11d2a" title="Kolor ramki">
           </div>
         </div>
-        <div class="full">
+        <div>
           <label for="add-date">Data zakupu</label>
           <input id="add-date" type="date">
+        </div>
+        <div>
+          <label for="add-count">Liczba szpul</label>
+          <input id="add-count" type="number" min="1" max="50" step="1" value="1" title="Ile identycznych szpul dodać">
         </div>
       </div>
       <div class="modal-foot">
         <button type="button" id="add-cancel" class="ghost">Anuluj</button>
-        <button type="submit" class="primary">+ Dodaj</button>
+        <button type="submit" id="add-submit" class="primary">+ Dodaj</button>
       </div>
     </form>
   </div>
@@ -555,25 +560,43 @@ document.getElementById('color-filter').addEventListener('change', e=>{
   state.colorFilter=e.target.value; renderGrid();
 });
 
-// ---- dodawanie (osobne okno) ----
+// ---- dodawanie / duplikowanie (osobne okno) ----
 const addModal=document.getElementById('add-modal');
 let hexTouched=false;
 
 const COLOR_REQUIRED_MSG='Podaj kolor filamentu (np. czerwony).';
+const MAX_COPIES=50;   // limit dla pola „Liczba szpul"
 
-function resetAddForm(){
-  document.getElementById('add-type').value='PLA';
-  const c=document.getElementById('add-color'); c.value=''; c.setCustomValidity('');
-  document.getElementById('add-hex').value='#e11d2a';
-  document.getElementById('add-initial').value='1000';   // domyślnie 1000 g
-  document.getElementById('add-date').value=today();
-  hexTouched=false;
+// src = filament do skopiowania (Duplikuj) albo null = pusty formularz
+function fillAddForm(src){
+  document.getElementById('add-type').innerHTML=typeOptions(src ? src.type : 'PLA');
+  const c=document.getElementById('add-color');
+  c.value=src ? (src.color||'') : ''; c.setCustomValidity('');
+  document.getElementById('add-hex').value=
+    src && /^#[0-9a-f]{6}$/i.test(src.color_hex) ? src.color_hex : '#e11d2a';
+  document.getElementById('add-initial').value=src ? src.weight_initial : 1000;   // domyślnie 1000 g
+  document.getElementById('add-date').value=src ? (src.purchase_date||today()) : today();
+  document.getElementById('add-count').value=1;
+  hexTouched=false;   // wpisanie innej nazwy koloru nadal podpowiada kolor ramki
+  document.getElementById('add-title').textContent=src ? 'Duplikuj filament' : 'Nowy filament';
+  document.getElementById('add-sub').textContent=src
+    ? `Kopia: ${src.type} · ${src.color||'bez nazwy'} — zmień, co trzeba (np. kolor)`
+    : 'Uzupełnij dane i kliknij „Dodaj"';
 }
 
-document.getElementById('open-add').addEventListener('click', ()=>{
-  resetAddForm();
+function openAddModal(src){
+  fillAddForm(src);
   addModal.showModal();
-  setTimeout(()=>document.getElementById('add-color').focus(), 50);
+  const c=document.getElementById('add-color');
+  setTimeout(()=>{ c.focus(); if(src) c.select(); }, 50);   // przy kopii od razu można nadpisać kolor
+}
+
+document.getElementById('open-add').addEventListener('click', ()=>openAddModal(null));
+
+document.getElementById('m-duplicate').addEventListener('click', ()=>{
+  const f=find(state.currentId); if(!f) return;
+  modal.close();
+  openAddModal(f);
 });
 
 document.getElementById('add-hex').addEventListener('input', ()=>{ hexTouched=true; });
@@ -598,14 +621,27 @@ document.getElementById('add-form').addEventListener('submit', async e=>{
     return;
   }
   colorEl.setCustomValidity('');
-  const created=await api('/api/filaments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+  const count=Math.max(1, Math.min(MAX_COPIES, parseInt(document.getElementById('add-count').value,10)||1));
+  const body=JSON.stringify({
     type:document.getElementById('add-type').value,
     color:colorName,
     color_hex:document.getElementById('add-hex').value,
     weight_initial:document.getElementById('add-initial').value||0,
     purchase_date:document.getElementById('add-date').value
-  })});
-  state.filaments.push(created);
+  });
+  const submitBtn=document.getElementById('add-submit');
+  submitBtn.disabled=true;
+  let created=null;
+  try{
+    for(let i=0;i<count;i++){                       // „Liczba szpul" = tyle identycznych wpisów
+      const c=await api('/api/filaments',{method:'POST',headers:{'Content-Type':'application/json'},body});
+      state.filaments.push(c); created=created||c;
+    }
+  }catch(err){
+    submitBtn.disabled=false; renderGrid();          // pokaż to, co zdążyło się dodać
+    return;
+  }
+  submitBtn.disabled=false;
   // pokaż nowy filament, nawet jeśli aktywne filtry by go ukryły
   if(state.colorFilter!=='all' && (created.color||'').trim()!==state.colorFilter) state.colorFilter='all';
   if(matchesType(created)) renderGrid();

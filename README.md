@@ -21,6 +21,10 @@ Każdy filament to **bloczek** z **grubą ramką w kolorze filamentu** — dzię
   odejmuje się od stanu; **Cofnij** przywraca ostatnie odjęcie (można cofać kolejno);
 - w sekcji **Szczegóły** edytujesz rodzaj, kolor, kolor ramki, gramaturę i datę
   (zmiany zapisują się od razu);
+- przyciskiem **Duplikuj** dodajesz taki sam filament jeszcze raz — otwiera się okno
+  dodawania z wypełnionymi danymi kopiowanej szpuli (kolor od razu zaznaczony, więc
+  łatwo wpisać inny); w polu **Liczba szpul** ustawiasz, ile identycznych sztuk dodać
+  naraz (do 50). Kopia jest zawsze pełną szpulą, nawet jeśli oryginał jest napoczęty;
 - przyciskiem **Usuń** kasujesz szpulę.
 
 Bloczek **podświetla się na czerwono** (znacznik „niski stan"), gdy stan spadnie do
@@ -99,7 +103,7 @@ Kopia zapasowa = skopiowanie tego pliku. Usunięcie pliku = czysty start.
 
 ```
 app.py                    # backend Flask + API + baza SQLite
-templates/index.html      # interfejs (bloczki, edycja, filtr, sortowanie)
+templates/index.html      # interfejs (bloczki, edycja, duplikowanie, filtry, sortowanie)
 requirements.txt          # zależności
 deploy/filamenty.service  # usługa systemd (autostart)
 filaments.db              # baza danych (tworzona automatycznie)
